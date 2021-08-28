@@ -33,6 +33,8 @@ type Player =
 [<Struct>]
 type Ball = { Size: float32; Texture: Texture2D }
 
+[<Struct>] type ScoreIncrease = { PlayerIndex: PlayerIndex; Game: Game }
+
 let (|KeyDown|_|) k (state: KeyboardState) =
     if state.IsKeyDown k then
         Some()
@@ -66,14 +68,11 @@ let createPlayer (game: Game) index =
         Size = Vector2(40f, 200f)
         Index = index
     }
-    
+
 let createBall (game: Game) =
     let texture = new Texture2D(game.GraphicsDevice, 1, 1)
     texture.SetData([| Color.Black |])
-    {
-        Texture = texture
-        Size = 40f
-    }
+    { Texture = texture; Size = 40f }
 
 let startPosition (game: Game) =
     {
@@ -147,17 +146,15 @@ let configureWorld (world: Container) =
 
             world
                 .Create()
-                .With(createPlayer game PlayerIndex.One)
+                .With(createPlayer game P1)
             |> ignore
 
             world
                 .Create()
-                .With(createPlayer game PlayerIndex.Two)
+                .With(createPlayer game P2)
             |> ignore
-            
-            world.Create()
-                .With(createBall game)
-            |> ignore)
+
+            world.Create().With(createBall game) |> ignore)
     |> ignore
 
     // start logo system
@@ -177,20 +174,19 @@ let configureWorld (world: Container) =
 
             let position =
                 match player.Index with
-                | PlayerIndex.One ->
+                | P1 ->
                     Vector2(
                         player.Size.X,
                         float32 game.Window.ClientBounds.Height / 2f
                         - player.Size.Y / 2f
                     )
-                | PlayerIndex.Two ->
+                | P2 ->
                     Vector2(
                         float32 game.Window.ClientBounds.Width
                         - player.Size.X * 2f,
                         float32 game.Window.ClientBounds.Height / 2f
                         - player.Size.Y / 2f
                     )
-                | _ -> raise (Exception())
 
             entity.Add
                 {
@@ -199,27 +195,38 @@ let configureWorld (world: Container) =
                     Position = position
                 }
 
-            entity.Add { X = 0f; Y = 5f }
+            entity.Add { X = 0f; Y = 10f }
             eid
         |> Join.update2
         |> Join.over world
     )
     |> ignore
-    
+
     world.On(
         fun (Start game) struct (eid: Eid, ball: Ball) ->
             let entity = world.Get eid
-            
-            let position = Vector2(
-                            float32 game.Window.ClientBounds.Width / 2f
-                            - ball.Size / 2f,
-                            float32 game.Window.ClientBounds.Height / 2f
-                            - ball.Size / 2f)
-            entity.Add {Position = position; Scale = 1f; Rotation = 0f}
+
+            let position =
+                Vector2(
+                    float32 game.Window.ClientBounds.Width / 2f
+                    - ball.Size / 2f,
+                    float32 game.Window.ClientBounds.Height / 2f
+                    - ball.Size / 2f
+                )
+
+            entity.Add
+                {
+                    Position = position
+                    Scale = 1f
+                    Rotation = 0f
+                }
+
             entity.Add { X = 3f; Y = 3f }
             eid
         |> Join.update2
-        |> Join.over world) |> ignore
+        |> Join.over world
+    )
+    |> ignore
 
     // update logo system
     world.On<Update>(
@@ -231,11 +238,11 @@ let configureWorld (world: Container) =
     |> ignore
 
     world.On<Update>(
-        fun e struct (transform: Transform, velocity: Velocity, player: Player) ->
+        fun (e: Update) struct (transform: Transform, velocity: Velocity, player: Player) ->
             let state = Keyboard.GetState()
 
             match player.Index with
-            | PlayerIndex.One ->
+            | P1 ->
                 match state with
                 | KeyDown Keys.W ->
                     { transform with
@@ -246,7 +253,7 @@ let configureWorld (world: Container) =
                         Position = Vector2(transform.Position.X, transform.Position.Y + velocity.Y)
                     }
                 | _ -> transform
-            | PlayerIndex.Two ->
+            | P2 ->
                 match state with
                 | KeyDown Keys.Up ->
                     { transform with
@@ -257,27 +264,76 @@ let configureWorld (world: Container) =
                         Position = Vector2(transform.Position.X, transform.Position.Y + velocity.Y)
                     }
                 | _ -> transform
-            | _ -> raise (Exception())
             |> clampPosition player.Size e.Game
 
         |> Join.update3
         |> Join.over world
     )
     |> ignore
-    
+
     world.On<Update>(
-        fun e struct (velocity: Velocity, transform: Transform, ball: Ball) ->
+        fun (e: Update) struct (velocity: Velocity, transform: Transform, ball: Ball) ->
             let y = transform.Position.Y
+
             match y with
-            | y when y + ball.Size > float32 e.Game.GraphicsDevice.Viewport.Height || y < 0f -> {velocity with Y = -velocity.Y}
+            | y when
+                y + ball.Size > float32 e.Game.GraphicsDevice.Viewport.Height
+                || y < 0f
+                ->
+                { velocity with Y = -velocity.Y }
             | _ -> velocity
         |> Join.update3
-        |> Join.over world) |> ignore
-    
+        |> Join.over world
+    )
+    |> ignore
+
     world.On<Update>(
         fun e struct (transform: Transform, velocity: Velocity, ball: Ball) ->
-            {transform with Position = Vector2(transform.Position.X + velocity.X, transform.Position.Y + velocity.Y)}
+            { transform with
+                Position = Vector2(transform.Position.X + velocity.X, transform.Position.Y + velocity.Y)
+            }
         |> Join.update3
+        |> Join.over world
+    )
+    |> ignore
+
+    world.On<Update>(
+        fun (e: Update) struct (transform: Transform, ball: Ball) ->
+            let player1Point =
+                transform.Position.X + ball.Size > float32 e.Game.GraphicsDevice.Viewport.Width
+
+            let player2Point = transform.Position.X < 0f
+
+            if player1Point then
+                world.Send { PlayerIndex = P1; Game = e.Game }
+
+            elif player2Point then
+                world.Send { PlayerIndex = P2; Game = e.Game }
+
+        |> Join.iter2
+        |> Join.over world
+    )
+    |> ignore
+    
+    world.On<ScoreIncrease>(
+        fun (s: ScoreIncrease) struct(transform: Transform, ball: Ball) ->
+            let width = float32 s.Game.GraphicsDevice.Viewport.Width
+            let height = float32 s.Game.GraphicsDevice.Viewport.Height
+            {transform with
+                Position = Vector2(
+                            width / 2f - ball.Size / 2f,
+                            height / 2f - ball.Size / 2f)
+            }
+        |> Join.update2
+        |> Join.over world) |> ignore
+    
+    world.On<ScoreIncrease>(
+        fun _ struct(velocity: Velocity, _: Ball) ->
+            {velocity with
+                X = -velocity.X
+                Y = -velocity.Y
+            }
+        |> Join.update2
         |> Join.over world) |> ignore
 
     world.On<Update>(
@@ -306,23 +362,19 @@ let configureWorld (world: Container) =
     world.On<BallAndPaddleCollision>
         (fun e ->
             let entity = world.Get e.BallEid
+
             let x =
                 match e.BallVelocity.X with
                 | x when x > 0f -> -(x + 0.1f)
                 | x -> -(x - 0.1f)
 
-            entity.Add(
-                {
-                    X = x
-                    Y = e.BallVelocity.Y
-                }
-            ))
+            entity.Add({ X = x; Y = e.BallVelocity.Y }))
     |> ignore
 
     // drawlogo system
     world.On<Draw>(
-        fun e struct (tr: Transform, logo: FSharpLogo) -> drawLogo e.SpriteBatch logo tr
-
+        fun e struct (tr: Transform, logo: FSharpLogo) ->
+            drawLogo e.SpriteBatch logo tr
         |> Join.iter2
         |> Join.over world
     )
@@ -339,15 +391,18 @@ let configureWorld (world: Container) =
         |> Join.over world
     )
     |> ignore
-    
+
     world.On<Draw>(
         fun e struct (tr: Transform, b: Ball) ->
             e.SpriteBatch.Draw(
                 b.Texture,
                 Rectangle(Point(tr.Position.X |> int, tr.Position.Y |> int), Point(b.Size |> int, b.Size |> int)),
-                Color.White)
+                Color.White
+            )
         |> Join.iter2
-        |> Join.over world) |> ignore
+        |> Join.over world
+    )
+    |> ignore
 
     // quit game system
     world.On<Update>

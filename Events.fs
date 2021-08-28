@@ -15,7 +15,9 @@ open Microsoft.Xna.Framework.Graphics
 [<Struct>] type Update = { DeltaTime: TimeSpan; Game: Game }
 [<Struct>] type Draw = { Time: TimeSpan; SpriteBatch: SpriteBatch}
 
+type PlayerIndex = | P1 | P2
 [<Struct>] type BallAndPaddleCollision = { BallEid: Eid; BallVelocity: Vector2 }
+
 
 
 
