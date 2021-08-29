@@ -1,6 +1,8 @@
 ﻿module Ball
 
 open Events
+open Game
+open Game.Vector
 open Garnet.Composition
 open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
@@ -32,14 +34,11 @@ let configureBall (world: Container) =
                     - ball.Size / 2f
                 )
 
-            entity.Add
-                {
-                    Position = position
-                    Scale = 1f
-                    Rotation = 0f
-                }
+            entity.Add (Rotate 0f)
+            entity.Add (Scale 1f)
+            entity.Add { Position = position }
+            entity.Add (Velocity.create initialSpeed initialSpeed)
 
-            entity.Add { X = initialSpeed; Y = initialSpeed }
             eid
         |> Join.update2
         |> Join.over world
@@ -47,25 +46,22 @@ let configureBall (world: Container) =
     |> ignore
 
     world.On<Update>(
-        fun (e: Update) struct (velocity: Velocity, transform: Transform, ball: Ball) ->
-            let y = transform.Position.Y
+        fun (e: Update) struct (Velocity velocity as velDefault, translate: Translate, ball: Ball) ->
+            let y = translate.Position.Y
 
-            match y with
-            | y when
-                y + ball.Size > float32 e.Game.GraphicsDevice.Viewport.Height
-                || y < 0f
-                ->
-                { velocity with Y = -velocity.Y }
-            | _ -> velocity
+            if y + ball.Size > float32 e.Game.GraphicsDevice.Viewport.Height || y < 0f
+            then  velocity.WithY(-velocity.Y) |> Velocity
+            else velDefault
+
         |> Join.update3
         |> Join.over world
     )
     |> ignore
 
     world.On<Update>(
-        fun _ struct (transform: Transform, velocity: Velocity, _: Ball) ->
-            { transform with
-                Position = Vector2(transform.Position.X + velocity.X, transform.Position.Y + velocity.Y)
+        fun _ struct (translate: Translate, Velocity velocity, _: Ball) ->
+            { translate with
+                Position = Vector2(translate.Position.X + velocity.X, translate.Position.Y + velocity.Y)
             }
         |> Join.update3
         |> Join.over world
@@ -73,11 +69,11 @@ let configureBall (world: Container) =
     |> ignore
 
     world.On<Update>(
-        fun (e: Update) struct (transform: Transform, ball: Ball) ->
+        fun (e: Update) struct (translate: Translate, ball: Ball) ->
             let player1Point =
-                transform.Position.X + ball.Size > float32 e.Game.GraphicsDevice.Viewport.Width
+                translate.Position.X + ball.Size > float32 e.Game.GraphicsDevice.Viewport.Width
 
-            let player2Point = transform.Position.X < 0f
+            let player2Point = translate.Position.X < 0f
 
             if player1Point then
                 world.Send { PlayerIndex = P1; Game = e.Game }
@@ -91,7 +87,7 @@ let configureBall (world: Container) =
     |> ignore
     
     world.On<ScoreIncrease>(
-        fun (s: ScoreIncrease) struct(transform: Transform, ball: Ball) ->
+        fun (s: ScoreIncrease) struct(transform: Translate, ball: Ball) ->
             let width = float32 s.Game.GraphicsDevice.Viewport.Width
             let height = float32 s.Game.GraphicsDevice.Viewport.Height
             {transform with
@@ -103,11 +99,10 @@ let configureBall (world: Container) =
         |> Join.over world) |> ignore
     
     world.On<ScoreIncrease>(
-        fun _ struct(velocity: Velocity, _: Ball) ->
-            {velocity with
-                X = if velocity.X > 0f then -initialSpeed else initialSpeed
-                Y = if velocity.Y > 0f then -initialSpeed else initialSpeed
-            }
+        fun _ struct(Velocity velocity, _: Ball) ->
+            let x = if velocity.X > 0f then -initialSpeed else initialSpeed
+            let y = if velocity.Y > 0f then -initialSpeed else initialSpeed
+            Velocity.create x y
         |> Join.update2
         |> Join.over world) |> ignore
 
@@ -120,16 +115,15 @@ let configureBall (world: Container) =
                 | x when x > 0f -> -(x + 0.1f)
                 | x -> -(x - 0.1f)
 
-            entity.Add({ X = x; Y = e.BallVelocity.Y }))
+            entity.Add (Velocity.create x e.BallVelocity.Y))
     |> ignore
     
     world.On<Draw>(
-        fun e struct (tr: Transform, b: Ball) ->
+        fun e struct (translate: Translate, b: Ball) ->
             e.SpriteBatch.Draw(
                 b.Texture,
-                Rectangle(Point(tr.Position.X |> int, tr.Position.Y |> int), Point(b.Size |> int, b.Size |> int)),
-                Color.White
-            )
+                (rect translate.Position (Vector2 b.Size)),
+                Color.White)
         |> Join.iter2
         |> Join.over world
     )

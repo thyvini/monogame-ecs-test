@@ -4,10 +4,7 @@ open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Input
 
 let (|KeyDown|_|) k (state: KeyboardState) =
-    if state.IsKeyDown k then
-        Some()
-    else
-        None
+    if state.IsKeyDown k then Some() else None
 
 let movementVector =
     function

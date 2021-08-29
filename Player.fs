@@ -1,7 +1,9 @@
 ﻿module Player
 
 open Events
+open Game.Vector
 open Garnet.Composition
+open Logo
 open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
 open Microsoft.Xna.Framework.Input
@@ -18,23 +20,21 @@ let private createPlayer (game: Game) index =
       Size = Vector2(40f, 200f)
       Index = index }
 
-let private clampPosition (size: Vector2) (game: Game) (transform: Transform) =
-    let x = transform.Position.X
+let private clampPosition (size: Vector2) (game: Game) (translate: Translate) =
+    let x = translate.Position.X
     let minY = 0f
 
     let maxY =
         game.GraphicsDevice.Viewport.Height |> float32
 
-    let curY = transform.Position.Y
+    let curY = translate.Position.Y
 
     match curY with
     | y when y < minY ->
-        { transform with
-              Position = Vector2(x, 0f) }
+        { translate with Position = Vector2(x, 0f) }
     | y when y + size.Y > maxY ->
-        { transform with
-              Position = Vector2(x, maxY - size.Y) }
-    | _ -> transform
+        { translate with Position = Vector2(x, maxY - size.Y) }
+    | _ -> translate
 
 let configurePlayer (world: Container) =
     world.On
@@ -66,14 +66,11 @@ let configurePlayer (world: Container) =
                         - player.Size.Y / 2f
                     )
 
-            entity.Add
-                {
-                    Rotation = 0f
-                    Scale = 1f
-                    Position = position
-                }
+            entity.Add (Rotate 0f)
+            entity.Add (Scale 1f)
+            entity.Add { Position = position }
+            entity.Add (Velocity.create 0f 10f)
 
-            entity.Add { X = 0f; Y = 10f }
             eid
         |> Join.update2
         |> Join.over world
@@ -81,32 +78,32 @@ let configurePlayer (world: Container) =
     |> ignore
     
     world.On<Update>(
-        fun (e: Update) struct (transform: Transform, velocity: Velocity, player: Player) ->
+        fun (e: Update) struct (translate: Translate, Velocity velocity, player: Player) ->
             let state = Keyboard.GetState()
 
             match player.Index with
             | P1 ->
                 match state with
                 | KeyDown Keys.W ->
-                    { transform with
-                        Position = Vector2(transform.Position.X, transform.Position.Y - velocity.Y)
+                    { translate with
+                        Position = Vector2(translate.Position.X, translate.Position.Y - velocity.Y)
                     }
                 | KeyDown Keys.S ->
-                    { transform with
-                        Position = Vector2(transform.Position.X, transform.Position.Y + velocity.Y)
+                    { translate with
+                        Position = Vector2(translate.Position.X, translate.Position.Y + velocity.Y)
                     }
-                | _ -> transform
+                | _ -> translate
             | P2 ->
                 match state with
                 | KeyDown Keys.Up ->
-                    { transform with
-                        Position = Vector2(transform.Position.X, transform.Position.Y - velocity.Y)
+                    { translate with
+                        Position = Vector2(translate.Position.X, translate.Position.Y - velocity.Y)
                     }
                 | KeyDown Keys.Down ->
-                    { transform with
-                        Position = Vector2(transform.Position.X, transform.Position.Y + velocity.Y)
+                    { translate with
+                        Position = Vector2(translate.Position.X, translate.Position.Y + velocity.Y)
                     }
-                | _ -> transform
+                | _ -> translate
             |> clampPosition player.Size e.Game
 
         |> Join.update3
@@ -115,22 +112,14 @@ let configurePlayer (world: Container) =
     |> ignore
     
     world.On<Update>(
-        fun _ struct (player: Player, transform: Transform) ->
-            for r in world.Query<Eid, Ball, Velocity, Transform>() do
-                let struct (eid, ball, ballVelocity, ballTransform) = r.Values
+        fun _ struct (player: Player, transform: Translate) ->
+            for r in world.Query<Eid, Ball, Velocity, Translate>() do
+                let struct (eid, ball, Velocity ballVelocity, ballTransform) = r.Values
 
-                let rectangle =
-                    Rectangle(ballTransform.Position.ToPoint(), Point(int ball.Size, int ball.Size))
-
-                if
-                    rectangle.Intersects
-                        (Rectangle(transform.Position.ToPoint(), Point(int player.Size.X, int player.Size.Y)))
-                then
-                    world.Send(
-                        {
-                            BallEid = eid
-                            BallVelocity = Vector2(ballVelocity.X, ballVelocity.Y)
-                        }
+                let rectangle = rect ballTransform.Position (Vector2 ball.Size)
+                if rectangle.Intersects (rect transform.Position player.Size)
+                then world.Send({ BallEid = eid
+                                  BallVelocity = Vector2(ballVelocity.X, ballVelocity.Y) }
                     )
         |> Join.iter2
         |> Join.over world
@@ -138,10 +127,10 @@ let configurePlayer (world: Container) =
     |> ignore
     
     world.On<Draw>(
-        fun e struct (tr: Transform, p: Player) ->
+        fun e struct (tr: Translate, p: Player) ->
             e.SpriteBatch.Draw(
                 p.Texture,
-                Rectangle(Point(tr.Position.X |> int, tr.Position.Y |> int), Point(p.Size.X |> int, p.Size.Y |> int)),
+                (rect tr.Position p.Size),
                 Color.White
             )
         |> Join.iter2
