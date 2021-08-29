@@ -1,6 +1,5 @@
 ﻿module Components
 
-open Game.Vector
 open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
 open Types
