@@ -1,9 +1,9 @@
 ﻿module Player
 
 open Events
-open Game.Vector
+open Game
 open Garnet.Composition
-open Logo
+open VectorModule
 open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
 open Microsoft.Xna.Framework.Input
@@ -39,10 +39,12 @@ let private clampPosition (size: Vector2) (game: Game) (translate: Translate) =
 let configurePlayer (world: Container) =
     world.On
         (fun (LoadContent game) ->
-            world.Create().With(createPlayer game P1)
+            world.Create()
+                .With(createPlayer game P1)
             |> ignore
 
-            world.Create().With(createPlayer game P2)
+            world.Create()
+                .With(createPlayer game P2)
             |> ignore)
     |> ignore
     
@@ -53,18 +55,11 @@ let configurePlayer (world: Container) =
             let position =
                 match player.Index with
                 | P1 ->
-                    Vector2(
-                        player.Size.X,
-                        float32 game.Window.ClientBounds.Height / 2f
-                        - player.Size.Y / 2f
-                    )
+                    Vector2(player.Size.X,
+                            float32 game.Window.ClientBounds.Height / 2f - player.Size.Y / 2f )
                 | P2 ->
-                    Vector2(
-                        float32 game.Window.ClientBounds.Width
-                        - player.Size.X * 2f,
-                        float32 game.Window.ClientBounds.Height / 2f
-                        - player.Size.Y / 2f
-                    )
+                    Vector2(float32 game.Window.ClientBounds.Width - player.Size.X * 2f,
+                            float32 game.Window.ClientBounds.Height / 2f - player.Size.Y / 2f )
 
             entity.Add (Rotate 0f)
             entity.Add (Scale 1f)
@@ -81,29 +76,16 @@ let configurePlayer (world: Container) =
         fun (e: Update) struct (translate: Translate, Velocity velocity, player: Player) ->
             let state = Keyboard.GetState()
 
-            match player.Index with
-            | P1 ->
-                match state with
-                | KeyDown Keys.W ->
-                    { translate with
-                        Position = Vector2(translate.Position.X, translate.Position.Y - velocity.Y)
-                    }
-                | KeyDown Keys.S ->
-                    { translate with
-                        Position = Vector2(translate.Position.X, translate.Position.Y + velocity.Y)
-                    }
-                | _ -> translate
-            | P2 ->
-                match state with
-                | KeyDown Keys.Up ->
-                    { translate with
-                        Position = Vector2(translate.Position.X, translate.Position.Y - velocity.Y)
-                    }
-                | KeyDown Keys.Down ->
-                    { translate with
-                        Position = Vector2(translate.Position.X, translate.Position.Y + velocity.Y)
-                    }
-                | _ -> translate
+            let newVelocity =
+                match player.Index, state with
+                | P1, KeyDown Keys.W
+                | P2, KeyDown Keys.Up -> -velocity
+
+                | P1, KeyDown Keys.S
+                | P2, KeyDown Keys.Down -> velocity
+                | _ -> Vector2.Zero
+
+            { translate with Position = translate.Position + newVelocity }
             |> clampPosition player.Size e.Game
 
         |> Join.update3
@@ -119,7 +101,7 @@ let configurePlayer (world: Container) =
                 let rectangle = rect ballTransform.Position (Vector2 ball.Size)
                 if rectangle.Intersects (rect transform.Position player.Size)
                 then world.Send({ BallEid = eid
-                                  BallVelocity = Vector2(ballVelocity.X, ballVelocity.Y) }
+                                  BallVelocity = ballVelocity }
                     )
         |> Join.iter2
         |> Join.over world
