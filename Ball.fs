@@ -34,8 +34,8 @@ let configureBall (world: Container) =
                     - ball.Size / 2f
                 )
 
-            entity.Add { Rotate = 0f }
-            entity.Add { Scale = 1f }
+            entity.Add (Rotate 0f)
+            entity.Add (Scale 1f)
             entity.Add { Position = position }
             entity.Add (Velocity.create initialSpeed initialSpeed)
 

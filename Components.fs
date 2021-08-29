@@ -6,8 +6,8 @@ open Microsoft.Xna.Framework.Graphics
 open Types
 
 [<Struct>] type Translate = { Position: Vector2 }
-[<Struct>] type Rotate = { Rotate: float32 }
-[<Struct>] type Scale = { Scale: float32 }
+[<Struct>] type Rotate =  Rotate of float32
+[<Struct>] type Scale =  Scale of float32
 [<Struct>] type Velocity = Velocity of  Vector2
 module Velocity =
     let create x y = Vector2(x,y) |> Velocity

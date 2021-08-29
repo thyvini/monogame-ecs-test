@@ -66,8 +66,8 @@ let configurePlayer (world: Container) =
                         - player.Size.Y / 2f
                     )
 
-            entity.Add { Rotate = 0f }
-            entity.Add { Scale = 1f }
+            entity.Add (Rotate 0f)
+            entity.Add (Scale 1f)
             entity.Add { Position = position }
             entity.Add (Velocity.create 0f 10f)
 
@@ -78,32 +78,32 @@ let configurePlayer (world: Container) =
     |> ignore
     
     world.On<Update>(
-        fun (e: Update) struct (transform: Translate, Velocity velocity, player: Player) ->
+        fun (e: Update) struct (translate: Translate, Velocity velocity, player: Player) ->
             let state = Keyboard.GetState()
 
             match player.Index with
             | P1 ->
                 match state with
                 | KeyDown Keys.W ->
-                    { transform with
-                        Position = Vector2(transform.Position.X, transform.Position.Y - velocity.Y)
+                    { translate with
+                        Position = Vector2(translate.Position.X, translate.Position.Y - velocity.Y)
                     }
                 | KeyDown Keys.S ->
-                    { transform with
-                        Position = Vector2(transform.Position.X, transform.Position.Y + velocity.Y)
+                    { translate with
+                        Position = Vector2(translate.Position.X, translate.Position.Y + velocity.Y)
                     }
-                | _ -> transform
+                | _ -> translate
             | P2 ->
                 match state with
                 | KeyDown Keys.Up ->
-                    { transform with
-                        Position = Vector2(transform.Position.X, transform.Position.Y - velocity.Y)
+                    { translate with
+                        Position = Vector2(translate.Position.X, translate.Position.Y - velocity.Y)
                     }
                 | KeyDown Keys.Down ->
-                    { transform with
-                        Position = Vector2(transform.Position.X, transform.Position.Y + velocity.Y)
+                    { translate with
+                        Position = Vector2(translate.Position.X, translate.Position.Y + velocity.Y)
                     }
-                | _ -> transform
+                | _ -> translate
             |> clampPosition player.Size e.Game
 
         |> Join.update3
@@ -118,11 +118,8 @@ let configurePlayer (world: Container) =
 
                 let rectangle = rect ballTransform.Position (Vector2 ball.Size)
                 if rectangle.Intersects (rect transform.Position player.Size)
-                then world.Send(
-                        {
-                            BallEid = eid
-                            BallVelocity = Vector2(ballVelocity.X, ballVelocity.Y)
-                        }
+                then world.Send({ BallEid = eid
+                                  BallVelocity = Vector2(ballVelocity.X, ballVelocity.Y) }
                     )
         |> Join.iter2
         |> Join.over world

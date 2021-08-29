@@ -14,14 +14,11 @@ type Game1() as this =
     let graphics = new GraphicsDeviceManager(this)
     let mutable spriteBatch = Unchecked.defaultof<_>
 
-    // put all your system config here
     let world =
-        Container()
-        |> GameLogic.configureWorld
+        Container() |> GameLogic.configureWorld
 
-    do
-        this.Content.RootDirectory <- "Content"
-        this.IsMouseVisible <- true
+    do this.Content.RootDirectory <- "Content"
+       this.IsMouseVisible <- true
 
     override this.LoadContent() =
         spriteBatch <- new SpriteBatch(this.GraphicsDevice)
@@ -40,7 +37,7 @@ type Game1() as this =
         base.Update gameTime
 
     override this.Draw gameTime =
-        this.GraphicsDevice.Clear Color.LightGray
+        this.GraphicsDevice.Clear Color.Gray
         spriteBatch.Begin()
         world.Run { Time = gameTime.ElapsedGameTime
                     SpriteBatch = spriteBatch }

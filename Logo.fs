@@ -4,9 +4,7 @@ open Events
 open Garnet.Composition
 open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
-open Microsoft.Xna.Framework.Input
 open Components
-open Keyboard
 
 let private createLogo (game: Game) =
     {
@@ -17,17 +15,17 @@ let private createLogo (game: Game) =
 let private startPosition (game: Game) =
     { Position = Vector2(float32 game.Window.ClientBounds.Width / 2f, float32 game.Window.ClientBounds.Height / 2f) }
 
-let private updateLogoRot logo rotation deltaTime =
-    { rotation with Rotate = rotation.Rotate + 0.01f }
+let private updateLogoRot rot deltaTime =
+    Rotate (rot + 0.1f * deltaTime)
 
-let private updateLogoScale logo scale deltaTime =
-    { scale with
-        Scale = if (scale.Scale < 2f)
-                then scale.Scale + 0.04f
-                else scale.Scale }
+let private updateLogoScale scale deltaTime =
+    if (scale < 2f)
+    then scale + 0.4f * deltaTime
+    else scale
+   |> Scale
 
 
-let private drawLogo (spriteBatch: SpriteBatch) (logo: FSharpLogo) (pos: Translate) rot scale =
+let private drawLogo (spriteBatch: SpriteBatch) (logo: FSharpLogo) (pos: Translate) (Rotate rot) (Scale scale) =
     let logoCenter =
         Vector2(float32 logo.Texture.Bounds.Width, float32 logo.Texture.Bounds.Height)
         / 2f
@@ -37,9 +35,9 @@ let private drawLogo (spriteBatch: SpriteBatch) (logo: FSharpLogo) (pos: Transla
         pos.Position,
         logo.Texture.Bounds,
         Color(255, 255, 255, 80),
-        rot.Rotate,
+        rot,
         logoCenter,
-        scale.Scale,
+        scale,
         SpriteEffects.None,
         0f
     )
@@ -53,8 +51,8 @@ let configureLogo (world: Container) =
         fun (Start game) struct (eid: Eid, _: FSharpLogo) ->
             let entity = world.Get eid
             entity.Add(startPosition game)
-            entity.Add({ Rotate = 0f})
-            entity.Add({ Scale = 0f})
+            entity.Add(Rotate 0f)
+            entity.Add(Scale 0f)
             eid
         |> Join.update2
         |> Join.over world
@@ -62,18 +60,18 @@ let configureLogo (world: Container) =
     |> ignore
     
     world.On<Update>(
-        fun e struct (scale: Scale, logo: FSharpLogo) ->
+        fun e struct (Scale scale, _: FSharpLogo) ->
             let time = (float32 e.DeltaTime.TotalSeconds)
-            updateLogoScale logo scale time
+            updateLogoScale scale time
         |> Join.update2
         |> Join.over world
     )
     |> ignore
 
     world.On<Update>(
-        fun e struct (rot: Rotate, logo: FSharpLogo) ->
+        fun e struct (Rotate rot, _: FSharpLogo) ->
             let time = (float32 e.DeltaTime.TotalSeconds)
-            updateLogoRot logo rot time
+            updateLogoRot rot time
         |> Join.update2
         |> Join.over world
     )
