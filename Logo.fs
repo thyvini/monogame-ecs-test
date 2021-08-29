@@ -15,46 +15,31 @@ let private createLogo (game: Game) =
     }
     
 let private startPosition (game: Game) =
-    {
-        Position = Vector2(float32 game.Window.ClientBounds.Width / 2f, float32 game.Window.ClientBounds.Height / 2f)
-        Rotation = 0f
-        Scale = 0f
-    }
+    { Position = Vector2(float32 game.Window.ClientBounds.Width / 2f, float32 game.Window.ClientBounds.Height / 2f) }
 
-let private updateLogo logo logoTransform deltaTime =
-    let moveVector = Keyboard.GetState() |> movementVector
-    let moveOffset = moveVector * logo.Speed * deltaTime
-    
-    let {
-            Scale = scale
-            Rotation = rot
-            Position = pos
-        } =
-        logoTransform
+let private updateLogoRot logo rotation deltaTime =
+    { rotation with Rotation = rotation.Rotation + 0.01f }
 
-    { logoTransform with
-        Rotation = rot + 0.01f
-        Scale =
-            if (scale < 2f) then
-                scale + 0.04f
-            else
-                scale
-        Position = pos + moveOffset
-    }
+let private updateLogoScale logo scale deltaTime =
+    { scale with
+        Scale = if (scale.Scale < 2f)
+                then scale.Scale + 0.04f
+                else scale.Scale }
 
-let private drawLogo (spriteBatch: SpriteBatch) (logo: FSharpLogo) (transform: Transform) =
+
+let private drawLogo (spriteBatch: SpriteBatch) (logo: FSharpLogo) (pos: Translate) rot scale =
     let logoCenter =
         Vector2(float32 logo.Texture.Bounds.Width, float32 logo.Texture.Bounds.Height)
         / 2f
 
     spriteBatch.Draw(
         logo.Texture,
-        transform.Position,
+        pos.Position,
         logo.Texture.Bounds,
         Color(255, 255, 255, 80),
-        transform.Rotation,
+        rot.Rotation,
         logoCenter,
-        transform.Scale,
+        scale.Scale,
         SpriteEffects.None,
         0f
     )
@@ -62,13 +47,14 @@ let private drawLogo (spriteBatch: SpriteBatch) (logo: FSharpLogo) (transform: T
 let configureLogo (world: Container) =
     world.On
         (fun (LoadContent game) ->
-            world.Create().With(createLogo game) |> ignore
-        ) |> ignore
+            world.Create().With(createLogo game) |> ignore) |> ignore
 
     world.On(
-        fun (Start game) struct (eid: Eid, logo: FSharpLogo) ->
+        fun (Start game) struct (eid: Eid, _: FSharpLogo) ->
             let entity = world.Get eid
             entity.Add(startPosition game)
+            entity.Add({ Rotation = 0f})
+            entity.Add({ Scale = 0f})
             eid
         |> Join.update2
         |> Join.over world
@@ -76,17 +62,27 @@ let configureLogo (world: Container) =
     |> ignore
     
     world.On<Update>(
-        fun e struct (tr: Transform, logo: FSharpLogo) -> updateLogo logo tr (float32 e.DeltaTime.TotalSeconds)
-
+        fun e struct (scale: Scale, logo: FSharpLogo) ->
+            let time = (float32 e.DeltaTime.TotalSeconds)
+            updateLogoScale logo scale time
         |> Join.update2
         |> Join.over world
     )
     |> ignore
-    
+
+    world.On<Update>(
+        fun e struct (rot: Rotation, logo: FSharpLogo) ->
+            let time = (float32 e.DeltaTime.TotalSeconds)
+            updateLogoRot logo rot time
+        |> Join.update2
+        |> Join.over world
+    )
+    |> ignore
+
     world.On<Draw>(
-        fun e struct (tr: Transform, logo: FSharpLogo) ->
-            drawLogo e.SpriteBatch logo tr
-        |> Join.iter2
+        fun e struct (rot: Rotation, scale: Scale, pos: Translate, logo: FSharpLogo) ->
+            drawLogo e.SpriteBatch logo pos rot scale
+        |> Join.iter4
         |> Join.over world
     )
     |> ignore

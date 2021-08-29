@@ -1,3 +1,3 @@
 ﻿module Types
 
-type PlayerIndex = | P1 | P2
+type PlayerIndex = P1 | P2

@@ -22,6 +22,7 @@
   </ItemGroup>
   <ItemGroup>
     <TrimmerRootAssembly Include="Microsoft.Xna.Framework.Content.ContentTypeReader" Visible="false" />
+    <Compile Include="Vector.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="Events.fs" />
     <Compile Include="Components.fs" />
