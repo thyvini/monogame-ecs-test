@@ -30,6 +30,7 @@ type Game1() as this =
     override this.Initialize() =
         graphics.PreferredBackBufferWidth <- 1024
         graphics.PreferredBackBufferHeight <- 768
+        graphics.ToggleFullScreen()
         graphics.ApplyChanges()
         base.Initialize()
         world.Run (Start this)
