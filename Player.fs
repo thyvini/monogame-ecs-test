@@ -2,7 +2,6 @@
 
 open Events
 open Game
-open Game.VectorModule
 open Garnet.Composition
 open VectorModule
 open Microsoft.Xna.Framework
@@ -102,7 +101,7 @@ let configurePlayer (world: Container) =
                 let rectangle = rect ballTransform.Position (Vector2 ball.Size)
                 if rectangle.Intersects (rect transform.Position player.Size)
                 then world.Send({ BallEid = eid
-                                  BallVelocity = Vector2(ballVelocity.X, ballVelocity.Y) }
+                                  BallVelocity = ballVelocity }
                     )
         |> Join.iter2
         |> Join.over world

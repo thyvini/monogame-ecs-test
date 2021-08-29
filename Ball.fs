@@ -60,9 +60,7 @@ let configureBall (world: Container) =
 
     world.On<Update>(
         fun _ struct (translate: Translate, Velocity velocity, _: Ball) ->
-            { translate with
-                Position = Vector2(translate.Position.X + velocity.X, translate.Position.Y + velocity.Y)
-            }
+            { translate with Position = translate.Position + velocity }
         |> Join.update3
         |> Join.over world
     )
@@ -77,7 +75,6 @@ let configureBall (world: Container) =
 
             if player1Point then
                 world.Send { PlayerIndex = P1; Game = e.Game }
-
             elif player2Point then
                 world.Send { PlayerIndex = P2; Game = e.Game }
 
@@ -107,13 +104,12 @@ let configureBall (world: Container) =
     world.On<Collisions.BallAndPaddle>
         (fun e ->
             let entity = world.Get e.BallEid
-
             let x =
                 (- e.BallVelocity.X) +
                 if e.BallVelocity.X > 0f
                 then 0.1f else -0.1f
 
-            entity.Add (Velocity.create x e.BallVelocity.Y))
+            entity.Add (e.BallVelocity.WithX(x) |> Velocity))
     |> ignore
     
     world.On<Draw>(
