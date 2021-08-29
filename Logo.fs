@@ -18,7 +18,7 @@ let private startPosition (game: Game) =
     { Position = Vector2(float32 game.Window.ClientBounds.Width / 2f, float32 game.Window.ClientBounds.Height / 2f) }
 
 let private updateLogoRot logo rotation deltaTime =
-    { rotation with Rotation = rotation.Rotation + 0.01f }
+    { rotation with Rotate = rotation.Rotate + 0.01f }
 
 let private updateLogoScale logo scale deltaTime =
     { scale with
@@ -37,7 +37,7 @@ let private drawLogo (spriteBatch: SpriteBatch) (logo: FSharpLogo) (pos: Transla
         pos.Position,
         logo.Texture.Bounds,
         Color(255, 255, 255, 80),
-        rot.Rotation,
+        rot.Rotate,
         logoCenter,
         scale.Scale,
         SpriteEffects.None,
@@ -53,7 +53,7 @@ let configureLogo (world: Container) =
         fun (Start game) struct (eid: Eid, _: FSharpLogo) ->
             let entity = world.Get eid
             entity.Add(startPosition game)
-            entity.Add({ Rotation = 0f})
+            entity.Add({ Rotate = 0f})
             entity.Add({ Scale = 0f})
             eid
         |> Join.update2
@@ -71,7 +71,7 @@ let configureLogo (world: Container) =
     |> ignore
 
     world.On<Update>(
-        fun e struct (rot: Rotation, logo: FSharpLogo) ->
+        fun e struct (rot: Rotate, logo: FSharpLogo) ->
             let time = (float32 e.DeltaTime.TotalSeconds)
             updateLogoRot logo rot time
         |> Join.update2
@@ -80,7 +80,7 @@ let configureLogo (world: Container) =
     |> ignore
 
     world.On<Draw>(
-        fun e struct (rot: Rotation, scale: Scale, pos: Translate, logo: FSharpLogo) ->
+        fun e struct (rot: Rotate, scale: Scale, pos: Translate, logo: FSharpLogo) ->
             drawLogo e.SpriteBatch logo pos rot scale
         |> Join.iter4
         |> Join.over world

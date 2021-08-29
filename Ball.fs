@@ -34,10 +34,10 @@ let configureBall (world: Container) =
                     - ball.Size / 2f
                 )
 
-            entity.Add { Rotation = 0f }
+            entity.Add { Rotate = 0f }
             entity.Add { Scale = 1f }
             entity.Add { Position = position }
-            entity.Add { Velocity = vector initialSpeed initialSpeed  }
+            entity.Add (Velocity.create initialSpeed initialSpeed)
 
             eid
         |> Join.update2
@@ -46,12 +46,12 @@ let configureBall (world: Container) =
     |> ignore
 
     world.On<Update>(
-        fun (e: Update) struct ({Velocity = velocity} as v: Velocity, translate: Translate, ball: Ball) ->
+        fun (e: Update) struct (Velocity velocity as velDefault, translate: Translate, ball: Ball) ->
             let y = translate.Position.Y
 
             if y + ball.Size > float32 e.Game.GraphicsDevice.Viewport.Height || y < 0f
-            then { Velocity = velocity.WithY(-velocity.Y) }
-            else v
+            then  velocity.WithY(-velocity.Y) |> Velocity
+            else velDefault
 
         |> Join.update3
         |> Join.over world
@@ -59,7 +59,7 @@ let configureBall (world: Container) =
     |> ignore
 
     world.On<Update>(
-        fun _ struct (translate: Translate, {Velocity = velocity}: Velocity, _: Ball) ->
+        fun _ struct (translate: Translate, Velocity velocity, _: Ball) ->
             { translate with
                 Position = Vector2(translate.Position.X + velocity.X, translate.Position.Y + velocity.Y)
             }
@@ -99,10 +99,10 @@ let configureBall (world: Container) =
         |> Join.over world) |> ignore
     
     world.On<ScoreIncrease>(
-        fun _ struct({Velocity = velocity}: Velocity, _: Ball) ->
+        fun _ struct(Velocity velocity, _: Ball) ->
             let x = if velocity.X > 0f then -initialSpeed else initialSpeed
             let y = if velocity.Y > 0f then -initialSpeed else initialSpeed
-            { Velocity = Vector2(x,y)  }
+            Velocity.create x y
         |> Join.update2
         |> Join.over world) |> ignore
 
@@ -115,7 +115,7 @@ let configureBall (world: Container) =
                 | x when x > 0f -> -(x + 0.1f)
                 | x -> -(x - 0.1f)
 
-            entity.Add { Velocity = vector x e.BallVelocity.Y })
+            entity.Add (Velocity.create x e.BallVelocity.Y))
     |> ignore
     
     world.On<Draw>(

@@ -1,13 +1,17 @@
 ﻿module Components
 
+open Game.Vector
 open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
 open Types
 
 [<Struct>] type Translate = { Position: Vector2 }
-[<Struct>] type Rotation = { Rotation: float32 }
+[<Struct>] type Rotate = { Rotate: float32 }
 [<Struct>] type Scale = { Scale: float32 }
-[<Struct>] type Velocity = { Velocity: Vector2 }
+[<Struct>] type Velocity = Velocity of  Vector2
+module Velocity =
+    let create x y = Vector2(x,y) |> Velocity
+
 [<Struct>] type Score = { Player: PlayerIndex; Value: byte }
 [<Struct>] type GameText = { SpriteFont: SpriteFont; Position: Vector2 }
 [<Struct>] type FSharpLogo = { Texture: Texture2D; Speed: float32 }

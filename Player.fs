@@ -66,10 +66,10 @@ let configurePlayer (world: Container) =
                         - player.Size.Y / 2f
                     )
 
-            entity.Add { Rotation = 0f }
+            entity.Add { Rotate = 0f }
             entity.Add { Scale = 1f }
             entity.Add { Position = position }
-            entity.Add { Velocity = vector 0f 10f }
+            entity.Add (Velocity.create 0f 10f)
 
             eid
         |> Join.update2
@@ -78,7 +78,7 @@ let configurePlayer (world: Container) =
     |> ignore
     
     world.On<Update>(
-        fun (e: Update) struct (transform: Translate, {Velocity = velocity}: Velocity, player: Player) ->
+        fun (e: Update) struct (transform: Translate, Velocity velocity, player: Player) ->
             let state = Keyboard.GetState()
 
             match player.Index with
@@ -114,7 +114,7 @@ let configurePlayer (world: Container) =
     world.On<Update>(
         fun _ struct (player: Player, transform: Translate) ->
             for r in world.Query<Eid, Ball, Velocity, Translate>() do
-                let struct (eid, ball, { Velocity = ballVelocity }, ballTransform) = r.Values
+                let struct (eid, ball, Velocity ballVelocity, ballTransform) = r.Values
 
                 let rectangle = rect ballTransform.Position (Vector2 ball.Size)
                 if rectangle.Intersects (rect transform.Position player.Size)
