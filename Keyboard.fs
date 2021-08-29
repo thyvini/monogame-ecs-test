@@ -11,12 +11,12 @@ let (|KeyDown|_|) k (state: KeyboardState) =
 
 let movementVector =
     function
-    | KeyDown Keys.W & KeyDown Keys.A -> Vector2(-1.f, -1.f)
-    | KeyDown Keys.W & KeyDown Keys.D -> Vector2(1.f, -1.f)
-    | KeyDown Keys.S & KeyDown Keys.A -> Vector2(-1.f, 1.f)
-    | KeyDown Keys.S & KeyDown Keys.D -> Vector2(1.f, 1.f)
-    | KeyDown Keys.W -> Vector2(0.f, -1.f)
-    | KeyDown Keys.S -> Vector2(0.f, 1.f)
-    | KeyDown Keys.A -> Vector2(-1.f, 0.f)
-    | KeyDown Keys.D -> Vector2(1.f, -0.f)
+    | KeyDown Keys.K & KeyDown Keys.H -> Vector2(-1.f, -1.f)
+    | KeyDown Keys.K & KeyDown Keys.L -> Vector2(1.f, -1.f)
+    | KeyDown Keys.J & KeyDown Keys.H -> Vector2(-1.f, 1.f)
+    | KeyDown Keys.J & KeyDown Keys.L -> Vector2(1.f, 1.f)
+    | KeyDown Keys.K -> Vector2(0.f, -1.f)
+    | KeyDown Keys.J -> Vector2(0.f, 1.f)
+    | KeyDown Keys.H -> Vector2(-1.f, 0.f)
+    | KeyDown Keys.L -> Vector2(1.f, -0.f)
     | _ -> Vector2.Zero

@@ -4,7 +4,9 @@ open Events
 open Garnet.Composition
 open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
+open Microsoft.Xna.Framework.Input
 open Components
+open Keyboard
 
 let private createLogo (game: Game) =
     {
@@ -20,6 +22,9 @@ let private startPosition (game: Game) =
     }
 
 let private updateLogo logo logoTransform deltaTime =
+    let moveVector = Keyboard.GetState() |> movementVector
+    let moveOffset = moveVector * logo.Speed * deltaTime
+    
     let {
             Scale = scale
             Rotation = rot
@@ -34,7 +39,7 @@ let private updateLogo logo logoTransform deltaTime =
                 scale + 0.04f
             else
                 scale
-        Position = pos
+        Position = pos + moveOffset
     }
 
 let private drawLogo (spriteBatch: SpriteBatch) (logo: FSharpLogo) (transform: Transform) =
