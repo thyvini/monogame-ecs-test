@@ -30,6 +30,7 @@
     <Compile Include="Logo.fs" />
     <Compile Include="Player.fs" />
     <Compile Include="Ball.fs" />
+    <Compile Include="Score.fs" />
     <Compile Include="GameLogic.fs" />
     <Compile Include="Game1.fs" />
     <Compile Include="Program.fs" />

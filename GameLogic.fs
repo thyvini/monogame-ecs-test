@@ -7,12 +7,14 @@ open Events
 open Logo
 open Player
 open Ball
+open Score
 
 let configureWorld (world: Container) =
 
     configureLogo world
     configureBall world
     configurePlayer world
+    configureScore world
 
     // quit game system
     world.On<Update>

@@ -11,6 +11,12 @@ type Transform = { Rotation: float32; Scale: float32; Position: Vector2 }
 type Velocity = { X: float32; Y: float32 }
 
 [<Struct>]
+type Score = { Player: PlayerIndex; Value: byte }
+
+[<Struct>]
+type GameText = { SpriteFont: SpriteFont; Position: Vector2 }
+
+[<Struct>]
 type FSharpLogo = { Texture: Texture2D; Speed: float32 }
 
 [<Struct>]

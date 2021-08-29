@@ -37,7 +37,7 @@ let private updateLogo logo logoTransform deltaTime =
         Position = pos
     }
 
-let private drawLogo (spriteBatch: SpriteBatch) (logo: FSharpLogo) transform =
+let private drawLogo (spriteBatch: SpriteBatch) (logo: FSharpLogo) (transform: Transform) =
     let logoCenter =
         Vector2(float32 logo.Texture.Bounds.Width, float32 logo.Texture.Bounds.Height)
         / 2f
